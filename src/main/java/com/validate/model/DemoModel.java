@@ -1,13 +1,16 @@
 package com.validate.model;
 
+import com.validate.validate.annotation.Request;
 import com.validate.validate.annotation.Required;
 
 /**
  * Created by wanghongxing on 15/10/10.
  */
-public class DemoModel {
+@Request
+public class DemoModel{
 
-    private int id;
+    @Required
+    private Integer id;
     @Required
     private String name;
     @Required
@@ -15,11 +18,11 @@ public class DemoModel {
     private String startTime;
     private String endTime;
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

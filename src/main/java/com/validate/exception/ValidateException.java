@@ -6,6 +6,7 @@ package com.validate.exception;
 public class ValidateException extends RuntimeException {
 
     public ValidateException() {
+
     }
 
     public ValidateException(String message) {

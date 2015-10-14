@@ -1,6 +1,7 @@
 package com.validate.validate.process;
 
 import com.validate.exception.ValidateNotNullException;
+import com.validate.validate.annotation.Request;
 import com.validate.validate.annotation.Required;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -10,6 +11,7 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Authenticator;
 import java.util.*;
 
@@ -20,7 +22,7 @@ public class RequiredUtil {
 
     private static final Logger LOGGER = Logger.getLogger(RequiredUtil.class);
 
-    public static void checkModel(Object object) {
+    public static void checkModel(Object object) throws IllegalAccessException, InvocationTargetException, IntrospectionException {
 
         Class clazz = object.getClass();
         Map<String,PropertyDescriptor> propertyDescriptorMap =
@@ -34,17 +36,19 @@ public class RequiredUtil {
             }
 
         } catch (IntrospectionException e) {
-            LOGGER.error(e.getMessage(),e);
+            throw e;
         }
 
         Field[] fields = clazz.getDeclaredFields();
         try{
 
             for(Field field : fields) {
+
                 Required requiredAno = field.getAnnotation(Required.class);
                 if (requiredAno == null || requiredAno.value() == false) continue;
 
-                Object fieldValue = field.get(object);
+                PropertyDescriptor pd = propertyDescriptorMap.get(field.getName());
+                Object fieldValue = pd.getReadMethod().invoke(object);
 
                 if (fieldValue instanceof String) {
                     if(StringUtils.isBlank((String)fieldValue))
@@ -60,20 +64,24 @@ public class RequiredUtil {
                         throw new ValidateNotNullException(field.getName() + " is not allow null");
                     checkInner((Map)fieldValue);
 
-                } else if(fieldValue instanceof Request){
-                    checkModel(fieldValue);
-
-                } else{
-                    if(field == null)
-                        throw new ValidateNotNullException(field.getName() + " is not allow null");
-
                 }
+
+                if(fieldValue == null) {
+                    throw new ValidateNotNullException(field.getName() + " is not allow null");
+                }
+
+                if(field.getAnnotation(Request.class)!=null){
+                    checkModel(fieldValue);
+                }
+
             }
 
-            checkValidateModelMehtod((Request) object);
+            //checkValidateModelMehtod((Request) object);
 
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            throw e;
+        } catch (InvocationTargetException e) {
+            throw e;
         }
 
     }
@@ -82,7 +90,7 @@ public class RequiredUtil {
      *
      * @param collection
      */
-    private static void checkInner(Collection collection){
+    private static void checkInner(Collection collection) throws IllegalAccessException, InvocationTargetException, IntrospectionException {
         for(Object model  : collection){
             checkModel(model);
         }
@@ -92,19 +100,11 @@ public class RequiredUtil {
      *
      * @param map
      */
-    private static void checkInner(Map map){
+    private static void checkInner(Map map) throws IllegalAccessException, InvocationTargetException, IntrospectionException {
         Set<Map.Entry> entrySet = map.entrySet();
         for(Map.Entry entry : entrySet){
             checkModel(entry.getValue());
         }
-    }
-
-    /**
-     *
-     * @param model
-     */
-    private static void checkValidateModelMehtod(Request model){
-        model.validateModelMehtod();
     }
 
 }
